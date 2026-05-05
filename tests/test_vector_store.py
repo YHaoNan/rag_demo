@@ -33,3 +33,20 @@ def test_sqlite_vector_store_query_with_document_filter(tmp_path):
 
     assert len(out) == 1
     assert out[0]["document_id"] == d2
+
+
+def test_sqlite_vector_store_keyword_search(tmp_path):
+    db = tmp_path / "rag.db"
+    with SQLiteVectorStore(str(db)) as store:
+        d1 = store.create_document("a.md", 1, "CharacterDocumentChunker", {})
+        store.add_many(
+            d1,
+            [
+                ("c1", "error code E100 appears once", [1.0, 0.0]),
+                ("c2", "error code E100 and error code E200", [0.0, 1.0]),
+            ],
+        )
+        out = store.keyword_search("error code", top_k=10)
+
+    assert len(out) == 2
+    assert out[0]["chunk_id"] == "c2"

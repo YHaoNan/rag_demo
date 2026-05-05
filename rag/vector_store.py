@@ -198,6 +198,39 @@ class SQLiteVectorStore:
         scored.sort(key=lambda x: x["score"], reverse=True)
         return scored[:top_k]
 
+    def keyword_search(self, query: str, top_k: int = 20, document_ids: list[int] | None = None) -> list[dict]:
+        token = query.strip()
+        if not token:
+            return []
+
+        sql = (
+            "SELECT v.document_id, d.source_name, v.chunk_id, v.text "
+            "FROM vectors_v2 v JOIN documents_v2 d ON d.id = v.document_id "
+            "WHERE LOWER(v.text) LIKE ?"
+        )
+        params: list = [f"%{token.lower()}%"]
+        if document_ids:
+            placeholders = ",".join(["?"] * len(document_ids))
+            sql += f" AND v.document_id IN ({placeholders})"
+            params.extend(document_ids)
+
+        cur = self.conn.execute(sql, params)
+        rows = cur.fetchall()
+        out: list[dict] = []
+        for document_id, source_name, chunk_id, text in rows:
+            score = float(text.lower().count(token.lower()))
+            out.append(
+                {
+                    "document_id": document_id,
+                    "source_name": source_name,
+                    "chunk_id": chunk_id,
+                    "text": text,
+                    "score": score,
+                }
+            )
+        out.sort(key=lambda x: x["score"], reverse=True)
+        return out[:top_k]
+
     def close(self) -> None:
         self.conn.close()
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from .openai_settings import get_openai_api_key, get_openai_base_url
 
 
 @dataclass
@@ -16,8 +17,8 @@ class EmbeddingConfig:
     @classmethod
     def from_env(cls) -> "EmbeddingConfig":
         load_dotenv()
-        api_key = os.getenv("OPENAI_API_KEY", "")
-        base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        api_key = get_openai_api_key()
+        base_url = get_openai_base_url()
         model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
         if not api_key:
             raise ValueError("OPENAI_API_KEY is required in environment or .env")

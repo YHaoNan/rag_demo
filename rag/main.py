@@ -6,7 +6,7 @@ from .chunker import CharacterDocumentChunker, MarkDownParentChildChunker
 from .contextualizer import ChunkContextualizer, ContextualizationConfig
 from .embeddings import EmbeddingConfig, OpenAIEmbedder
 from .parsers import MarkdownParser
-from .rag_pipeline import ingest_directory, retrieve
+from .rag_pipeline import ingest_directory, retrieve_smart
 from .vector_store import SQLiteVectorStore
 
 
@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     query = sub.add_parser("query", help="Query vector store")
     query.add_argument("--db-path", required=True)
     query.add_argument("--text", required=True)
-    query.add_argument("--top-k", type=int, default=3)
+    uery.add_argument("--top-k", type=int, default=3)
 
     return parser
 
@@ -53,7 +53,9 @@ def main() -> None:
 
     elif args.command == "query":
         with SQLiteVectorStore(args.db_path) as store:
-            results = retrieve(args.text, embedder, store, top_k=args.top_k)
+            smart = retrieve_smart(args.text, embedder, store, top_k=args.top_k)
+            results = smart["results"]
+        print(f"route={smart['route']} confidence={smart['confidence']:.2f} reason={smart['reason']}")
         for i, item in enumerate(results, start=1):
             print(f"[{i}] document_id={item['document_id']} source={item['source_name']} chunk={item['chunk_id']} score={item['score']:.4f}")
             print(item["text"])

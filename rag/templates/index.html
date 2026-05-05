@@ -5,38 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>RAG 管理台</title>
     <style>
-      :root { --bg1:#f2f7f5; --bg2:#e8f0ec; --card:#ffffff; --ink:#1e2930; --sub:#5c6b73; --line:#d7e2dd; --accent:#0d7a66; --accent-soft:#e2f3ef; --danger:#c53b37; }
+      :root { --bg1:#f2f7f5; --bg2:#e8f0ec; --card:#fff; --ink:#1e2930; --sub:#5c6b73; --line:#d7e2dd; --accent:#0d7a66; --danger:#c53b37; }
       * { box-sizing:border-box; }
-      body { margin:0; font-family:"Segoe UI","PingFang SC",sans-serif; color:var(--ink); background:radial-gradient(1200px 500px at 20% -10%, #d9efe8 0%, transparent 55%), linear-gradient(160deg,var(--bg1),var(--bg2)); }
-      .wrap { max-width:1120px; margin:28px auto; padding:0 16px; }
-      .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(8,45,37,.08); margin-bottom:16px; }
-      h1,h2 { margin:0 0 12px 0; }
-      .muted { color:var(--sub); font-size:14px; }
-      .upload-form { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr auto; gap:10px; margin-top:14px; align-items:end; }
-      .query-form { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; }
-      .field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+      body { margin:0; font-family:"Segoe UI","PingFang SC",sans-serif; color:var(--ink); background:linear-gradient(160deg,var(--bg1),var(--bg2)); }
+      .wrap { max-width:1160px; margin:24px auto; padding:0 16px; }
+      .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+      .muted { color:var(--sub); font-size:13px; }
+      .upload-form { display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr auto; gap:8px; align-items:end; }
+      .query-form { display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto auto; gap:8px; align-items:end; }
+      .field { display:flex; flex-direction:column; gap:5px; min-width:0; }
       .field.hidden { display:none; }
       .field label { font-size:12px; color:#40535c; }
-      input, select, button { border:1px solid var(--line); border-radius:10px; padding:10px; font-size:14px; background:#fff; }
+      input, select, button { border:1px solid var(--line); border-radius:10px; padding:9px; font-size:14px; background:#fff; }
       button { background:linear-gradient(180deg,#0f8b73,#0d7a66); color:#fff; border:none; cursor:pointer; font-weight:600; }
       .btn-danger { background:linear-gradient(180deg,#d0514d,#c53b37); }
-      table { width:100%; border-collapse:collapse; margin-top:14px; }
-      th, td { text-align:left; padding:10px; border-bottom:1px solid #edf2ef; font-size:14px; vertical-align:top; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
-      .chip { display:inline-block; padding:4px 10px; border-radius:999px; background:var(--accent-soft); color:#0d6657; font-size:12px; border:1px solid #cce8e0; position:relative; }
-      .chip[data-tooltip]:hover::after { content: attr(data-tooltip); position:absolute; left:0; top:130%; min-width:280px; max-width:420px; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; background:#1f2f35; color:#f2f8f6; border-radius:8px; padding:10px; z-index:20; font-size:12px; }
-      .result { border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:10px; background:linear-gradient(180deg,#fafffe,#f6fcfa); }
+      table { width:100%; border-collapse:collapse; margin-top:12px; }
+      th, td { text-align:left; padding:9px; border-bottom:1px solid #edf2ef; font-size:14px; vertical-align:top; }
+      .result { border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:10px; background:#f9fdfb; }
+      .llm-answer { margin-top:10px; border:1px solid #cfe5dd; background:#f4fbf8; border-radius:10px; padding:10px; }
+      .progress-wrap { margin-top:10px; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fbfffd; }
+      .progress-bar { width:100%; height:10px; background:#e5efea; border-radius:999px; overflow:hidden; margin-top:8px; }
+      .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,#0f8b73,#0d7a66); transition:width .25s ease; }
       pre { margin:0; white-space:pre-wrap; word-break:break-word; font-size:13px; }
       a { color:#0d7a66; text-decoration:none; }
-      @media (max-width: 980px) { .upload-form, .query-form { grid-template-columns:1fr; } }
+      @media (max-width:980px){ .upload-form,.query-form{ grid-template-columns:1fr; } }
     </style>
   </head>
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>RAG 管理台</h1>
-        <div class="muted">上传 Markdown，自动执行 chunk + embedding + SQLite 入库</div>
-        <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
-          <div class="field"><label for="file">文档文件（Markdown）</label><input id="file" type="file" name="file" accept=".md" required /></div>
+        <h2>上传文档</h2>
+        <div class="muted">异步任务模式：上传后可实时查看状态。</div>
+        <form id="upload-form" class="upload-form" action="/api/upload-task" method="post" enctype="multipart/form-data">
+          <div class="field"><label for="file">Markdown 文件</label><input id="file" type="file" name="file" accept=".md" required /></div>
           <div class="field"><label for="chunker">Chunker</label><select id="chunker" name="chunker"><option value="character">CharacterDocumentChunker</option><option value="markdown_parent_child">MarkDownParentChildChunker</option></select></div>
           <div class="field chunker-character"><label for="separator">separator</label><input id="separator" type="text" name="separator" value="&#10;&#10;" /></div>
           <div class="field chunker-character"><label for="max_length">max_length</label><input id="max_length" type="number" name="max_length" value="500" min="1" /></div>
@@ -44,39 +45,52 @@
           <div class="field chunker-mdpc hidden"><label for="parent_max_chars">parent_max_chars</label><input id="parent_max_chars" type="number" name="parent_max_chars" value="1200" min="1" /></div>
           <div class="field chunker-mdpc hidden"><label for="child_max_chars">child_max_chars</label><input id="child_max_chars" type="number" name="child_max_chars" value="300" min="1" /></div>
           <div class="field"><label for="with_contextual_summary">上下文补全</label><input id="with_contextual_summary" type="checkbox" name="with_contextual_summary" /></div>
+          <div class="field"><label for="with_qa_pairs">生成QA对</label><input id="with_qa_pairs" type="checkbox" name="with_qa_pairs" /></div>
+          <div class="field"><label for="qa_pair_count">QA数量</label><input id="qa_pair_count" type="number" name="qa_pair_count" value="8" min="1" max="50" /></div>
           <button type="submit">上传并处理</button>
         </form>
+        <div id="upload-progress" class="progress-wrap" style="display:none;">
+          <div id="upload-text" class="muted"></div>
+          <div class="progress-bar"><div id="upload-fill" class="progress-fill"></div></div>
+        </div>
       </div>
 
       <div class="card">
-        <h2>用户查询</h2>
-        <form class="query-form" action="/query" method="post">
-          <div class="field"><label for="query_text">查询文本</label><input id="query_text" type="text" name="query_text" value="{{ query_text }}" required /></div>
-          <div class="field"><label for="document_ids">文档ID过滤（可选，例: 1,7）</label><input id="document_ids" type="text" name="document_ids" value="{{ document_ids_text }}" /></div>
-          <div class="field"><label for="top_k">返回条数</label><input id="top_k" type="number" name="top_k" value="{{ top_k }}" min="1" /></div>
+        <h2>检索查询</h2>
+        <div class="muted">异步任务模式：可查看路由、检索进度。</div>
+        <form id="query-form" class="query-form" action="/api/query-task" method="post">
+          <div class="field"><label for="query_text">查询文本</label><input id="query_text" type="text" name="query_text" required /></div>
+          <div class="field"><label for="document_ids">文档ID过滤（可选，例: 1,7）</label><input id="document_ids" type="text" name="document_ids" /></div>
+          <div class="field"><label for="top_k">返回条数</label><input id="top_k" type="number" name="top_k" value="3" min="1" /></div>
+          <div class="field"><label for="min_score">最低分数</label><input id="min_score" type="number" name="min_score" value="0" step="0.0001" /></div>
           <button type="submit">执行检索</button>
+          <button id="llm-btn" type="button">=&gt;LLM</button>
         </form>
-        {% for r in results %}
-          <div class="result"><div class="muted">document_id={{ r.document_id }} | source={{ r.source_name }} | chunk={{ r.chunk_id }} | score={{ '%.4f'|format(r.score) }}</div><pre>{{ r.text }}</pre></div>
-        {% endfor %}
+        <div id="query-progress" class="progress-wrap" style="display:none;">
+          <div id="query-text" class="muted"></div>
+          <div class="progress-bar"><div id="query-fill" class="progress-fill"></div></div>
+        </div>
+        <div id="query-meta" class="muted" style="margin-top:10px;"></div>
+        <div id="llm-answer" class="llm-answer" style="display:none;"></div>
+        <div id="query-results"></div>
       </div>
 
       <div class="card">
         <h2>历史文档</h2>
         <table>
-          <thead><tr><th>ID</th><th>文件名</th><th>Chunker</th><th>Chunk 数</th><th>更新时间(UTC)</th><th>操作</th></tr></thead>
+          <thead><tr><th>ID</th><th>文件名</th><th>Chunker</th><th>Chunk数</th><th>更新时间(UTC)</th><th>操作</th></tr></thead>
           <tbody>
             {% for d in docs %}
             <tr>
               <td><a href="/docs/{{ d.id }}">{{ d.id }}</a></td>
               <td>{{ d.source_name }}</td>
-              <td><span class="chip" data-tooltip='{{ d.chunker_params | tojson(indent=2) }}'>{{ d.chunker }}</span></td>
+              <td>{{ d.chunker }}</td>
               <td>{{ d.chunk_count }}</td>
               <td>{{ d.created_at }}</td>
-              <td><form action="/docs/{{ d.id }}/delete" method="post" onsubmit="return confirm('确认删除该文档及其全部向量吗？');"><button class="btn-danger" type="submit">删除</button></form></td>
+              <td><form action="/docs/{{ d.id }}/delete" method="post" onsubmit="return confirm('确认删除该文档及向量吗？');"><button class="btn-danger" type="submit">删除</button></form></td>
             </tr>
             {% else %}
-            <tr><td colspan="6" class="muted">暂无历史文档</td></tr>
+            <tr><td colspan="6" class="muted">暂无历史文档。</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -87,13 +101,99 @@
       const chunkerSelect = document.getElementById("chunker");
       const charFields = document.querySelectorAll(".chunker-character");
       const mdpcFields = document.querySelectorAll(".chunker-mdpc");
-      function apply() {
+      function applyChunkerVisibility() {
         const isMdpc = chunkerSelect.value === "markdown_parent_child";
         charFields.forEach((el) => el.classList.toggle("hidden", isMdpc));
         mdpcFields.forEach((el) => el.classList.toggle("hidden", !isMdpc));
       }
-      chunkerSelect.addEventListener("change", apply);
-      apply();
+      chunkerSelect.addEventListener("change", applyChunkerVisibility);
+      applyChunkerVisibility();
+
+      async function pollTask(taskId, onUpdate, onDone) {
+        while (true) {
+          const resp = await fetch(`/api/tasks/${taskId}`);
+          const data = await resp.json();
+          onUpdate(data);
+          if (data.status === "completed" || data.status === "failed") { onDone(data); return; }
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+
+      const uploadForm = document.getElementById("upload-form");
+      const uploadProgress = document.getElementById("upload-progress");
+      const uploadText = document.getElementById("upload-text");
+      const uploadFill = document.getElementById("upload-fill");
+      uploadForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(uploadForm);
+        const resp = await fetch("/api/upload-task", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (!resp.ok) { alert(data.error || "上传任务创建失败"); return; }
+        uploadProgress.style.display = "block";
+        await pollTask(data.task_id, (s) => {
+          uploadText.textContent = `[${s.stage}] ${s.message}`;
+          uploadFill.style.width = `${s.progress || 0}%`;
+        }, (s) => {
+          if (s.status === "completed") { uploadText.textContent = "上传处理完成，刷新列表..."; setTimeout(() => window.location.reload(), 500); }
+          else { uploadText.textContent = `上传失败: ${s.error || s.message}`; }
+        });
+      });
+
+      const queryForm = document.getElementById("query-form");
+      const queryProgress = document.getElementById("query-progress");
+      const queryText = document.getElementById("query-text");
+      const queryFill = document.getElementById("query-fill");
+      const queryMeta = document.getElementById("query-meta");
+      const queryResults = document.getElementById("query-results");
+      const llmBtn = document.getElementById("llm-btn");
+      const llmAnswer = document.getElementById("llm-answer");
+      let lastQueryText = "";
+      let lastTopK = 3;
+      let lastResults = [];
+
+      queryForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        queryResults.innerHTML = "";
+        queryMeta.textContent = "";
+        llmAnswer.style.display = "none";
+        const formData = new FormData(queryForm);
+        lastQueryText = String(formData.get("query_text") || "");
+        lastTopK = Number(formData.get("top_k") || 3);
+        const resp = await fetch("/api/query-task", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (!resp.ok) { alert(data.error || "查询任务创建失败"); return; }
+        queryProgress.style.display = "block";
+        await pollTask(data.task_id, (s) => {
+          queryText.textContent = `[${s.stage}] ${s.message}`;
+          queryFill.style.width = `${s.progress || 0}%`;
+          if (Array.isArray(s.all_regexes) && s.all_regexes.length) queryMeta.textContent = `regexes=${s.all_regexes.join(" | ")}`;
+          if (s.route) queryMeta.textContent = `route=${s.route} | confidence=${(s.confidence || 0).toFixed(2)} | reason=${s.reason || ""}`;
+        }, (s) => {
+          if (s.status !== "completed") { queryText.textContent = `查询失败: ${s.error || s.message}`; return; }
+          const result = s.result || {};
+          lastResults = result.results || [];
+          const regexText = Array.isArray(result.all_regexes) && result.all_regexes.length ? ` | regexes=${result.all_regexes.join(" | ")}` : "";
+          const subqText = Array.isArray(result.sub_questions) && result.sub_questions.length ? ` | sub_questions=${result.sub_questions.join(" || ")}` : "";
+          queryMeta.textContent = `route=${result.route} | confidence=${Number(result.confidence || 0).toFixed(2)} | reason=${result.reason || ""}${regexText}${subqText}`;
+          const rows = result.results || [];
+          queryResults.innerHTML = rows.map((r) => `<div class="result"><div class="muted">document_id=${r.document_id} | source=${r.source_name} | chunk=${r.chunk_id} | score=${Number(r.score || 0).toFixed(4)}</div><pre>${(r.text || "").replace(/</g, "&lt;")}</pre></div>`).join("");
+          if (!rows.length) queryResults.innerHTML = '<div class="muted" style="margin-top:10px;">No result.</div>';
+        });
+      });
+
+      llmBtn.addEventListener("click", async () => {
+        if (!lastQueryText || !lastResults.length) { alert("请先执行检索，再进行 LLM 回答。"); return; }
+        llmAnswer.style.display = "block";
+        llmAnswer.textContent = "LLM 正在基于当前检索结果生成回答...";
+        const resp = await fetch("/api/answer-from-results", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query_text: lastQueryText, top_k: lastTopK, results: lastResults })
+        });
+        const data = await resp.json();
+        if (!resp.ok) { llmAnswer.textContent = `LLM 回答失败: ${data.error || "unknown error"}`; return; }
+        llmAnswer.innerHTML = `<div class="muted">model=${data.model}</div><pre>${(data.answer || "").replace(/</g, "&lt;")}</pre>`;
+      });
     })();
     </script>
   </body>
