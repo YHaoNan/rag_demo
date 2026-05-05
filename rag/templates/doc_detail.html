@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>文档详情 - {{ doc.id }}</title>
+    <style>
+      :root { --bg1:#f2f7f5; --bg2:#e8f0ec; --card:#ffffff; --ink:#1e2930; --sub:#5c6b73; --line:#d7e2dd; --accent-soft:#e2f3ef; }
+      * { box-sizing:border-box; }
+      body { margin:0; font-family:"Segoe UI","PingFang SC",sans-serif; color:var(--ink); background:radial-gradient(1200px 500px at 20% -10%, #d9efe8 0%, transparent 55%), linear-gradient(160deg,var(--bg1),var(--bg2)); }
+      .wrap { max-width:1100px; margin:28px auto; padding:0 16px; }
+      .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(8,45,37,.08); }
+      .meta { color:var(--sub); font-size:14px; margin-bottom:10px; }
+      .chunk { border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:10px; background:linear-gradient(180deg,#fafffe,#f6fcfa); }
+      .parent { border:1px solid #cfe1db; border-radius:12px; padding:12px; margin-top:12px; background:#f8fdfb; }
+      .children { margin-top:10px; padding-left:10px; border-left:3px solid #d9ebe5; }
+      pre { margin:0; white-space:pre-wrap; word-break:break-word; font-size:13px; }
+      .chip { display:inline-block; padding:4px 10px; border-radius:999px; background:var(--accent-soft); color:#0d6657; font-size:12px; border:1px solid #cce8e0; position:relative; }
+      .chip[data-tooltip]:hover::after { content: attr(data-tooltip); position:absolute; left:0; top:130%; min-width:280px; max-width:420px; white-space:pre-wrap; background:#1f2f35; color:#f2f8f6; border-radius:8px; padding:10px; z-index:20; font-size:12px; }
+      a { color:#0d7a66; text-decoration:none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div><a href="/">返回管理台</a></div>
+        <h1>文档 #{{ doc.id }}</h1>
+        <div class="meta">文件名: {{ doc.source_name }} | chunk数: {{ doc.chunk_count }} | 更新时间(UTC): {{ doc.created_at }}</div>
+        <div class="meta">Chunker: <span class="chip" data-tooltip='{{ doc.chunker_params | tojson(indent=2) }}'>{{ doc.chunker }}</span></div>
+
+        {% if doc.chunker == "MarkDownParentChildChunker" and parents %}
+          <h3>Parent-Child 结构</h3>
+          {% for p in parents %}
+            <div class="parent">
+              <div class="meta"><strong>{{ p.parent_id }}</strong>（parent）</div>
+              <pre>{{ p.text }}</pre>
+              <div class="children">
+                {% for child_id in p.child_chunk_ids %}
+                  {% for c in chunks %}
+                    {% if c.chunk_id == child_id %}
+                      <div class="chunk">
+                        <div class="meta">{{ c.chunk_id }}（child）</div>
+                        <pre>{{ c.text }}</pre>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <h3>Chunk 明细</h3>
+          {% for c in chunks %}
+            <div class="chunk">
+              <div class="meta">{{ c.chunk_id }}</div>
+              <pre>{{ c.text }}</pre>
+            </div>
+          {% else %}
+            <div class="meta">该文档暂无 chunk</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </body>
+</html>
