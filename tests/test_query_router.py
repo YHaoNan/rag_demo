@@ -30,7 +30,7 @@ def test_parse_router_json_invalid():
 
 
 def test_route_query_llm_invalid_json_fallback(monkeypatch):
-    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("OPENAI_CHAT_API_KEY", "k")
     monkeypatch.setenv("OPENAI_ROUTER_MODEL", "m")
 
     def fake_llm_route(query, cfg):

@@ -13,7 +13,7 @@ from openai import OpenAI
 from .chunker import CharacterDocumentChunker, DocumentChunker, MarkDownParentChildChunker
 from .contextualizer import ChunkContextualizer
 from .embeddings import OpenAIEmbedder
-from .openai_settings import get_openai_api_key, get_openai_base_url
+from .openai_settings import get_openai_chat_api_key, get_openai_chat_base_url
 from .parsers import DocumentParser
 from .query_router import QueryRoute, route_query
 from .vector_store import SQLiteVectorStore
@@ -148,10 +148,10 @@ def retrieve(query: str, embedder: OpenAIEmbedder, store: SQLiteVectorStore, top
 
 def _generate_qa_pairs_with_llm(full_text: str, qa_pair_count: int = 8) -> list[dict]:
     load_dotenv()
-    api_key = get_openai_api_key()
+    api_key = get_openai_chat_api_key()
     if not api_key:
         return []
-    base_url = get_openai_base_url()
+    base_url = get_openai_chat_base_url()
     model = os.getenv("OPENAI_QA_MODEL", "").strip() or os.getenv("OPENAI_CHAT_MODEL", "").strip() or "gpt-4.1-mini"
     timeout = float(os.getenv("OPENAI_QA_TIMEOUT_SECONDS", "90"))
     retries = int(os.getenv("OPENAI_QA_MAX_RETRIES", "2"))
@@ -210,10 +210,10 @@ def _summary_retrieve(query: str, embedder: OpenAIEmbedder, store: SQLiteVectorS
 
 def _generate_regexes_with_llm(query: str) -> list[str]:
     load_dotenv()
-    api_key = get_openai_api_key()
+    api_key = get_openai_chat_api_key()
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is required for regex generation")
-    base_url = get_openai_base_url()
+        raise ValueError("OPENAI_CHAT_API_KEY is required for regex generation")
+    base_url = get_openai_chat_base_url()
     model = os.getenv("OPENAI_REGEX_MODEL", "").strip() or os.getenv("OPENAI_CHAT_MODEL", "").strip() or "gpt-4.1-mini"
     timeout = float(os.getenv("OPENAI_REGEX_TIMEOUT_SECONDS", "30"))
     retries = int(os.getenv("OPENAI_REGEX_MAX_RETRIES", "1"))
@@ -308,10 +308,10 @@ def _semantic_retrieve(query: str, embedder: OpenAIEmbedder, store: SQLiteVector
 
 def _decompose_semantic_query_with_llm(query: str) -> list[str]:
     load_dotenv()
-    api_key = get_openai_api_key()
+    api_key = get_openai_chat_api_key()
     if not api_key:
         return [query]
-    base_url = get_openai_base_url()
+    base_url = get_openai_chat_base_url()
     model = os.getenv("OPENAI_SEMANTIC_DECOMPOSE_MODEL", "").strip() or os.getenv("OPENAI_CHAT_MODEL", "").strip() or "gpt-4.1-mini"
     timeout = float(os.getenv("OPENAI_SEMANTIC_DECOMPOSE_TIMEOUT_SECONDS", "60"))
     retries = int(os.getenv("OPENAI_SEMANTIC_DECOMPOSE_MAX_RETRIES", "2"))

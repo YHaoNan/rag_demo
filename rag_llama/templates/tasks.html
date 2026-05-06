@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>rag-llama tasks</title>
+    <style>
+      body { font-family: "Segoe UI", "PingFang SC", sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; }
+      .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin-bottom: 14px; background: #fff; }
+      .meta { color: #42564a; font-size: 13px; margin: 4px 0; }
+      .tree { margin-top: 8px; border: 1px solid #d7e2dc; border-radius: 8px; background: #fff; padding: 8px; }
+      .tree ul { list-style: none; padding-left: 18px; margin: 4px 0; }
+      .tree li { margin: 4px 0; }
+      .tree details { border-left: 2px solid #e3ece7; padding-left: 8px; }
+      .ok { border: 1px solid #bfe3c9; background: #f5fff7; border-radius: 8px; padding: 8px; margin-top: 8px; }
+      .muted { color: #666; }
+    </style>
+  </head>
+  <body>
+    <h2>已完成 RAG 上传任务</h2>
+    <div style="margin-bottom:12px;">
+      <a href="/">返回上传页</a>
+    </div>
+    {% if not tasks %}
+      <div class="card muted">暂无已完成任务。</div>
+    {% endif %}
+    {% for t in tasks %}
+      <div class="card">
+        <div class="meta"><b>时间：</b>{{ t.created_at }}</div>
+        <div class="meta"><b>session_id：</b>{{ t.session_id }}</div>
+        <div class="meta"><b>文件：</b>{{ t.source_name }}</div>
+        <div class="meta"><b>切割方式：</b>{{ t.split_mode }}</div>
+        <div class="meta"><b>文档数：</b>{{ t.document_count }} | <b>Node数：</b>{{ t.chunk_count }}</div>
+        <div>
+          {% for row in t.index_results %}
+            <div class="ok"><b>{{ row.index_type }}</b> -> {{ row.persist_dir }}<br/>文件：{{ row.artifacts }}</div>
+          {% endfor %}
+        </div>
+        <details style="margin-top:10px;">
+          <summary>查看切片明细（{{ t.nodes|length }}）</summary>
+          {% for node in t.nodes %}
+            <div class="tree">
+              <div class="meta"><b>ID:</b> {{ node.id }} | <b>Type:</b> {{ node.type }}</div>
+              <div class="meta"><b>Relationships:</b> {{ node.relationships }}</div>
+              <div class="meta"><b>Metadata:</b> {{ node.metadata }}</div>
+              <div>{{ node.preview }}</div>
+            </div>
+          {% endfor %}
+        </details>
+      </div>
+    {% endfor %}
+  </body>
+</html>

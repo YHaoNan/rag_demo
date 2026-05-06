@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from openai import APITimeoutError, OpenAI
-from .openai_settings import get_openai_api_key, get_openai_base_url
+from .openai_settings import get_openai_chat_api_key, get_openai_chat_base_url
 
 
 @dataclass
@@ -21,8 +21,8 @@ class ContextualizationConfig:
     @classmethod
     def from_env(cls) -> "ContextualizationConfig":
         load_dotenv()
-        api_key = get_openai_api_key()
-        base_url = get_openai_base_url()
+        api_key = get_openai_chat_api_key()
+        base_url = get_openai_chat_base_url()
         model = os.getenv("OPENAI_CONTEXT_MODEL", "").strip() or os.getenv("OPENAI_CHAT_MODEL", "").strip()
         max_context_chars = int(os.getenv("OPENAI_CONTEXT_MAX_CHARS", "4000"))
         request_timeout_seconds = float(os.getenv("OPENAI_CONTEXT_TIMEOUT_SECONDS", "60"))
@@ -30,7 +30,7 @@ class ContextualizationConfig:
         max_workers = int(os.getenv("OPENAI_CONTEXT_MAX_WORKERS", "4"))
         task_queue_size = int(os.getenv("OPENAI_CONTEXT_TASK_QUEUE_SIZE", "16"))
         if not api_key:
-            raise ValueError("OPENAI_API_KEY is required when contextual chunking is enabled")
+            raise ValueError("OPENAI_CHAT_API_KEY is required when contextual chunking is enabled")
         if not model:
             raise ValueError("OPENAI_CONTEXT_MODEL (or OPENAI_CHAT_MODEL) is required when contextual chunking is enabled")
         if max_context_chars <= 0:
@@ -57,8 +57,8 @@ class ChunkContextualizer:
     def __init__(self, config: ContextualizationConfig):
         self.config = config
         self.client = OpenAI(
-            api_key=get_openai_api_key(),
-            base_url=get_openai_base_url(),
+            api_key=get_openai_chat_api_key(),
+            base_url=get_openai_chat_base_url(),
             timeout=config.request_timeout_seconds,
             max_retries=config.max_retries,
         )

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>rag-llama parser lab</title>
+    <style>
+      body { font-family: "Segoe UI", "PingFang SC", sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 12px; }
+      .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+      .grid { display: grid; grid-template-columns: 220px 1fr; gap: 10px; align-items: center; }
+      .result { margin-top: 12px; border: 1px solid #dfe8e3; background: #f7fcfa; border-radius: 8px; padding: 10px; }
+      input, button, select { padding: 8px; font-size: 14px; }
+      .nodes { margin-top: 16px; }
+      .node { border: 1px solid #d7e2dc; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; }
+      .meta { color: #42564a; font-size: 12px; margin-bottom: 6px; }
+      .preview { white-space: pre-wrap; font-size: 13px; line-height: 1.4; }
+      .tree { margin-top: 14px; border: 1px solid #d7e2dc; border-radius: 8px; background: #fff; padding: 8px; }
+      .tree ul { list-style: none; padding-left: 18px; margin: 4px 0; }
+      .tree li { margin: 4px 0; }
+      .tree details { border-left: 2px solid #e3ece7; padding-left: 8px; }
+      .tree summary { cursor: pointer; }
+      .mode-panel { display: none; border: 1px dashed #cfd8d3; border-radius: 8px; padding: 10px; margin-top: 8px; }
+      .mode-panel.active { display: block; }
+      label { font-weight: 600; }
+      .error { border: 1px solid #efc4c4; background: #fff4f4; color: #8f2d2d; border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+      .ok { border: 1px solid #bfe3c9; background: #f5fff7; border-radius: 8px; padding: 8px; margin-top: 8px; }
+      .bad { border: 1px solid #e7c1c1; background: #fff6f6; border-radius: 8px; padding: 8px; margin-top: 8px; }
+      .index-options { display: flex; gap: 12px; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <h2>rag-llama（两阶段流程：切分 -> 索引）</h2>
+    <div style="margin-bottom:12px;">
+      <a href="/tasks">查看已完成任务看板</a>
+    </div>
+
+    {% if error_msg %}
+    <div class="error"><b>错误：</b>{{ error_msg }}</div>
+    {% endif %}
+
+    <div class="card">
+      <h3>步骤 1：上传并切分 Node</h3>
+      <form action="/split" method="post" enctype="multipart/form-data">
+        <div class="grid">
+          <label>文件</label>
+          <input type="file" name="file" accept=".md,.markdown,.pdf,.doc,.docx" required />
+
+          <label>切割方式</label>
+          <select name="split_mode" id="split_mode" onchange="togglePanels()">
+            <option value="sentence">SentenceSplitter（句子切割）</option>
+            <option value="semantic">SemanticSplitterNodeParser（语义切割）</option>
+            <option value="hierarchical">HierarchicalNodeParser（父子切割）</option>
+            <option value="markdown">MarkdownNodeParser（Markdown切割）</option>
+            <option value="markdown_element">MarkdownElementNodeParser（Markdown元素切割）</option>
+          </select>
+        </div>
+
+        <div id="panel_sentence" class="mode-panel active">
+          <div class="grid">
+            <label>chunk_size</label>
+            <input type="number" name="chunk_size" value="500" min="50" />
+            <label>chunk_overlap</label>
+            <input type="number" name="chunk_overlap" value="50" min="0" />
+          </div>
+        </div>
+
+        <div id="panel_semantic" class="mode-panel">
+          <div class="grid">
+            <label>buffer_size</label>
+            <input type="number" name="semantic_buffer_size" value="1" min="1" />
+            <label>breakpoint_percentile_threshold</label>
+            <input type="number" name="semantic_breakpoint_percentile_threshold" value="95" min="50" max="100" />
+          </div>
+        </div>
+
+        <div id="panel_hierarchical" class="mode-panel">
+          <div class="grid">
+            <label>chunk_sizes</label>
+            <input type="text" name="hierarchical_chunk_sizes" value="2048,512,128" />
+          </div>
+        </div>
+
+        <div id="panel_markdown" class="mode-panel">
+          <div class="meta">MarkdownNodeParser 当前无需额外参数。</div>
+        </div>
+
+        <div id="panel_markdown_element" class="mode-panel">
+          <div class="meta">MarkdownElementNodeParser 会调用 LLM 处理表格元素。</div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <button type="submit">执行切分</button>
+        </div>
+      </form>
+    </div>
+
+    {% if last_result %}
+    <div class="card">
+      <h3>步骤 2：选择索引并存储</h3>
+      <div class="result">
+        <div><b>session_id：</b>{{ last_result.session_id }}</div>
+        <div><b>会话有效期：</b>{{ last_result.expires_in_seconds }} 秒</div>
+        <div><b>文件：</b>{{ last_result.source_name }}</div>
+        <div><b>切割方式：</b>{{ last_result.split_mode }}</div>
+        <div><b>文档数：</b>{{ last_result.document_count }}</div>
+        <div><b>Node数：</b>{{ last_result.chunk_count }}</div>
+      </div>
+
+      <form action="/index" method="post" style="margin-top:10px;">
+        <input type="hidden" name="session_id" value="{{ last_result.session_id }}" />
+        <div class="index-options">
+          <label><input type="checkbox" name="index_types" value="vector" checked /> 向量索引（VectorStoreIndex）</label>
+          <label><input type="checkbox" name="index_types" value="property_graph" /> 图索引（PropertyGraphIndex）</label>
+          <label><input type="checkbox" name="index_types" value="keyword" /> 关键词索引（KeywordTableIndex）</label>
+        </div>
+        <div style="margin-top:10px;">
+          <button type="submit">存储索引</button>
+        </div>
+      </form>
+
+      {% if last_store_result %}
+      <div class="result">
+        <div><b>存储结果 session_id：</b>{{ last_store_result.session_id }}</div>
+        {% for row in last_store_result.results %}
+          {% if row.ok %}
+          <div class="ok"><b>{{ row.index_type }}</b> 成功，目录：{{ row.persist_dir }}<br/>文件：{{ row.artifacts }}</div>
+          {% else %}
+          <div class="bad"><b>{{ row.index_type }}</b> 失败，原因：{{ row.error }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="nodes">
+        <h3>Node 关系树</h3>
+        <div id="node-tree" class="tree"></div>
+
+        <h3>Node 切割结果</h3>
+        {% for node in last_result.nodes %}
+        <div class="node">
+          <div class="meta"><b>ID:</b> {{ node.id }} | <b>Type:</b> {{ node.type }}</div>
+          <div class="meta"><b>Relationships:</b> {{ node.relationships }}</div>
+          <div class="meta"><b>Metadata:</b> {{ node.metadata }}</div>
+          <div class="preview">{{ node.preview }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <script>
+      const nodesData = {{ (last_result.nodes if last_result else []) | tojson }};
+
+      function togglePanels() {
+        const mode = document.getElementById('split_mode').value;
+        const panels = ['sentence', 'semantic', 'hierarchical', 'markdown', 'markdown_element'];
+        for (const p of panels) {
+          const el = document.getElementById('panel_' + p);
+          if (!el) continue;
+          el.classList.remove('active');
+        }
+        const target = document.getElementById('panel_' + mode);
+        if (target) target.classList.add('active');
+      }
+
+      function parseIds(raw) {
+        if (!raw) return [];
+        return String(raw).split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      function buildNodeTree(nodes) {
+        const container = document.getElementById('node-tree');
+        if (!container || !nodes.length) return;
+
+        const byId = {};
+        const children = {};
+        const hasParent = new Set();
+
+        for (const n of nodes) {
+          byId[n.id] = n;
+          children[n.id] = [];
+        }
+
+        for (const n of nodes) {
+          const rel = n.relationships || {};
+          const parentId = rel.PARENT || rel.parent || '';
+          if (parentId && byId[parentId]) {
+            children[parentId].push(n.id);
+            hasParent.add(n.id);
+          }
+          const childIds = parseIds(rel.CHILD || rel.child || '');
+          for (const cid of childIds) {
+            if (byId[cid] && !children[n.id].includes(cid)) {
+              children[n.id].push(cid);
+              hasParent.add(cid);
+            }
+          }
+        }
+
+        const roots = nodes.map(n => n.id).filter(id => !hasParent.has(id));
+        const visited = new Set();
+
+        function renderNode(id) {
+          if (visited.has(id)) return '';
+          visited.add(id);
+          const node = byId[id];
+          if (!node) return '';
+          const kids = children[id] || [];
+          const title = `${node.type} | ${id.slice(0, 10)}...`;
+          const relText = JSON.stringify(node.relationships || {});
+          const preview = (node.preview || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          if (!kids.length) {
+            return `<li><details><summary>${title}</summary><div class="meta">rel: ${relText}</div><div class="preview">${preview}</div></details></li>`;
+          }
+          return `<li><details open><summary>${title} (children: ${kids.length})</summary><div class="meta">rel: ${relText}</div><div class="preview">${preview}</div><ul>${kids.map(renderNode).join('')}</ul></details></li>`;
+        }
+
+        let html = '<ul>';
+        for (const rid of roots) html += renderNode(rid);
+        for (const n of nodes) {
+          if (!visited.has(n.id)) html += renderNode(n.id);
+        }
+        html += '</ul>';
+        container.innerHTML = html;
+      }
+
+      togglePanels();
+      buildNodeTree(nodesData);
+    </script>
+  </body>
+ </html>

@@ -20,7 +20,7 @@ from .embeddings import EmbeddingConfig, OpenAIEmbedder
 from .parsers import MarkdownParser
 from .rag_pipeline import ingest_document, retrieve_smart
 from .vector_store import SQLiteVectorStore
-from .openai_settings import get_openai_api_key, get_openai_base_url
+from .openai_settings import get_openai_chat_api_key, get_openai_chat_base_url
 
 
 def _slugify(filename: str) -> str:
@@ -272,8 +272,8 @@ def create_app() -> Flask:
             return jsonify({"error": "results is required and must be non-empty"}), 400
 
         load_dotenv()
-        api_key = get_openai_api_key()
-        base_url = get_openai_base_url()
+        api_key = get_openai_chat_api_key()
+        base_url = get_openai_chat_base_url()
         model = os.getenv("OPENAI_ANSWER_MODEL", "").strip() or os.getenv("OPENAI_CHAT_MODEL", "").strip() or "gpt-4.1-mini"
         timeout = float(os.getenv("OPENAI_ANSWER_TIMEOUT_SECONDS", "60"))
         retries = int(os.getenv("OPENAI_ANSWER_MAX_RETRIES", "2"))

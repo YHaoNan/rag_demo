@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 from openai import APITimeoutError
 from openai import OpenAI
-from .openai_settings import get_openai_api_key, get_openai_base_url
+from .openai_settings import get_openai_chat_api_key, get_openai_chat_base_url
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class RouterConfig:
     @classmethod
     def from_env(cls) -> "RouterConfig | None":
         load_dotenv()
-        api_key = get_openai_api_key()
+        api_key = get_openai_chat_api_key()
         model = (
             os.getenv("OPENAI_ROUTER_MODEL", "").strip()
             or os.getenv("OPENAI_CHAT_MODEL", "").strip()
@@ -86,8 +86,8 @@ def _parse_router_json(content: str) -> QueryRoute | None:
 
 def _llm_route(query: str, cfg: RouterConfig) -> QueryRoute | None:
     client = OpenAI(
-        api_key=get_openai_api_key(),
-        base_url=get_openai_base_url(),
+        api_key=get_openai_chat_api_key(),
+        base_url=get_openai_chat_base_url(),
         timeout=cfg.timeout_seconds,
         max_retries=cfg.max_retries,
     )

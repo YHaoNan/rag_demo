@@ -13,3 +13,13 @@ def get_openai_api_key() -> str:
 def get_openai_base_url() -> str:
     load_dotenv()
     return os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
+
+
+def get_openai_chat_api_key() -> str:
+    load_dotenv()
+    return os.getenv("OPENAI_CHAT_API_KEY", "").strip()
+
+
+def get_openai_chat_base_url() -> str:
+    load_dotenv()
+    return os.getenv("OPENAI_CHAT_BASE_URL", "https://api.openai.com/v1").strip()

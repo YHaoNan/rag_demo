@@ -25,8 +25,8 @@ pip install -r requirements.txt
 OPENAI_API_KEY=your_key
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_CONTEXT_API_KEY=your_key
-OPENAI_CONTEXT_BASE_URL=https://api.openai.com/v1
+OPENAI_CHAT_API_KEY=your_key
+OPENAI_CHAT_BASE_URL=https://api.openai.com/v1
 OPENAI_CONTEXT_MODEL=gpt-4.1-mini
 OPENAI_CONTEXT_MAX_CHARS=4000
 ```
